@@ -2,7 +2,7 @@
 Proyecto de inteligencia artificial Grupo 2. Optimización Portuaria en Manta mediante Árboles de Decisión y Técnicas de Regresión para modelos predictivos. 
 Se creó un entorno virtual para la utilización de pytorch
 
-Pasos:
+##Pasos:
 python -m venv venv
 
 Activamos el entorno virtual 
@@ -19,6 +19,7 @@ pip install matplotlib
 
 Para esto debe tener instalado pip previamente 
 
-y desactivamos el entorno virtual con 
+y luego desactivamos el entorno virtual con 
 
 deactivate
+
