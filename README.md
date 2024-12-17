@@ -3,23 +3,21 @@ Proyecto de inteligencia artificial Grupo 2. Optimización Portuaria en Manta me
 Se creó un entorno virtual para la utilización de pytorch
 
 ## Pasos:
+Creamos el entorno virtual:
 python -m venv venv
 
-Activamos el entorno virtual 
+Activamos el entorno virtual con: 
 
 venv\Scripts\activate
 
-Instalamos los paquetes dentro del entorno
+Instalamos los paquetes que vamos a usar dentro del entorno (Para esto debe tener instalado pip previamente):
 
 pip install torch torchvision torchaudio
 pip install pandas
 pip install scikit-learn
 pip install matplotlib
 
-
-Para esto debe tener instalado pip previamente 
-
-y luego desactivamos el entorno virtual con 
+Luego desactivamos el entorno virtual con:
 
 deactivate
 
