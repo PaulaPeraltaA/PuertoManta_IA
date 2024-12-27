@@ -16,7 +16,8 @@ pip install torch torchvision torchaudio
 pip install pandas
 pip install scikit-learn
 pip install matplotlib
-pip install imbalanced-learn   
+pip install imbalanced-learn 
+pip install dash
 Luego desactivamos el entorno virtual con:
 
 deactivate
