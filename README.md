@@ -13,12 +13,19 @@ venv\Scripts\activate
 Instalamos los paquetes que vamos a usar dentro del entorno (Para esto debe tener instalado pip previamente):
 
 pip install torch torchvision torchaudio
+
 pip install pandas
+
 pip install scikit-learn
+
 pip install matplotlib
+
 pip install imbalanced-learn 
+
 pip install dash
+
 pip install networkx
+
 
 Luego desactivamos el entorno virtual con:
 
