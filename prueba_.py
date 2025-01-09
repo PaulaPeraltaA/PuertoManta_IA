@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 # 1. Carga y Exploración Inicial de Datos
 # ------------------------------
 # Cargar la base de datos desde el CSV
-ruta_csv = 'resultado_con_fecha_zarpe.csv'  # Reemplaza esto con tu ruta
+ruta_csv = "C:/Users/Stephany/Desktop/Nueva carpeta (3)/PuertoManta_IA/resultado_con_fecha_zarpe.csv"  # Reemplaza esto con tu ruta
 df = pd.read_csv(ruta_csv, thousands=',')
 
 # Verificar el DataFrame

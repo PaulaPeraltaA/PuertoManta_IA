@@ -8,7 +8,9 @@ from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.metrics import accuracy_score, confusion_matrix
 
 # Cargar la base de datos desde el CSV
-ruta_csv = 'resultado_con_fecha_zarpe.csv'  # Reemplaza esto con tu ruta
+###ruta_csv = 'resultado_con_fecha_zarpe.csv'  # Reemplaza esto con tu ruta
+ruta_csv = "C:/Users/Stephany/Desktop/Nueva carpeta (3)/PuertoManta_IA/resultado_con_fecha_zarpe.csv"
+
 df = pd.read_csv(ruta_csv)
 
 # Verificar el DataFrame
