@@ -8,7 +8,7 @@ import joblib
 import pickle
 import base64
 import io
-import calendar  # Para obtener los nombres de los meses
+import calendar
 
 # Inicializar la aplicación Dash
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
@@ -29,7 +29,11 @@ with open('features_clf.pkl', 'rb') as f:
 
 with open('class_names.pkl', 'rb') as f:
     class_names = pickle.load(f)
-
+    
+nombres_meses_es = {
+    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+    7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+}
 # Layout principal
 app.layout = html.Div(
     style={
@@ -74,6 +78,9 @@ app.layout = html.Div(
                     ),
                 ]),
 
+                # Contenedor para filtros dinámicos
+                html.Div(id='dynamic-filters'),
+
                 # Resultados de predicción
                 html.Div(id='output-data-upload', style={'marginTop': '20px'}),
 
@@ -81,15 +88,17 @@ app.layout = html.Div(
 
                 # Pie de página
                 html.Div([
-                    html.P("Desarrollado para optimización portuaria - 2024", style={'textAlign': 'center', 'color': 'gray'})
+                    html.P("Desarrollado para optimización portuaria - 2024 Grupo 2 IA", style={'textAlign': 'center', 'color': 'gray'})
                 ])
             ]
         )
     ]
 )
 
+# Callback para procesar y predecir
 @app.callback(
-    Output('output-data-upload', 'children'),
+    [Output('output-data-upload', 'children'),
+     Output('dynamic-filters', 'children')],
     [Input('upload-data', 'contents')],
     [State('upload-data', 'filename')]
 )
@@ -101,7 +110,7 @@ def process_and_predict(contents, filename):
             # Leer archivo CSV
             nuevos_datos = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
         except Exception as e:
-            return html.Div([html.H5(f"Error al procesar el archivo: {e}")])
+            return html.Div([html.H5(f"Error al procesar el archivo: {e}")]), None
 
         # Preprocesar los datos
         nuevos_datos['Fecha_Llegada'] = pd.to_datetime(nuevos_datos['Fecha_Llegada'], format='%m/%d/%Y %H:%M', errors='coerce')
@@ -138,18 +147,21 @@ def process_and_predict(contents, filename):
         nuevos_datos['Retraso Estimado (Horas)'] = modelo_regresor.predict(X_reg)
         nuevos_datos['Retraso Estimado (Horas)'] = nuevos_datos['Retraso Estimado (Horas)'].round(2)
 
-        # Crear una tabla combinada
-        tabla_resultados = nuevos_datos[['Registro', 'Buque', 'Eslora', 'Muelle Asignado', 'Retraso Estimado (Horas)']]
-        tabla_resultados.rename(columns={
-            'Registro': 'Registro',
-            'Buque': 'Nombre del Buque',
-            'Eslora': 'Longitud del Buque (Eslora)'
-        }, inplace=True)
+        # Crear columna de nombres de meses en español
+        nuevos_datos['Mes_Llegada'] = nuevos_datos['Fecha_Llegada'].dt.month.map(nombres_meses_es)
 
-        # Guardar resultados en un CSV
-        tabla_resultados.to_csv('resultados_operaciones_puerto.csv', index=False)
 
-        # Gráfico de distribución por muelle
+        # Crear categorías de retrasos
+        nuevos_datos['Categoría Retraso'] = pd.cut(
+            nuevos_datos['Retraso Estimado (Horas)'],
+            bins=[-np.inf, 0, 24, 72, np.inf],
+            labels=['Sin retraso', 'Corto', 'Moderado', 'Largo']
+        )
+
+        # Generar opciones dinámicas para el filtro de muelle
+        muelles_unicos = [{'label': muelle, 'value': muelle} for muelle in nuevos_datos['Muelle Asignado'].unique()]
+
+        # Crear visualización
         fig_muelle = px.histogram(
             nuevos_datos,
             x='Muelle Asignado',
@@ -158,16 +170,6 @@ def process_and_predict(contents, filename):
             color_discrete_sequence=['#003366']
         )
 
-        # Agregar columna para mes de llegada y clasificar retrasos
-        nuevos_datos['Mes_Llegada'] = nuevos_datos['Fecha_Llegada'].dt.month
-        nuevos_datos['Mes_Llegada'] = nuevos_datos['Mes_Llegada'].apply(lambda x: calendar.month_name[x])
-        nuevos_datos['Categoría Retraso'] = pd.cut(
-            nuevos_datos['Retraso Estimado (Horas)'],
-            bins=[-np.inf, 0, 24, 72, np.inf],
-            labels=['Sin retraso', 'Corto', 'Moderado', 'Largo']
-        )
-
-        # Gráfico de buques esperados por mes
         fig_buques_mes = px.histogram(
             nuevos_datos,
             x='Mes_Llegada',
@@ -175,39 +177,93 @@ def process_and_predict(contents, filename):
             title="Número de Buques Esperados por Mes",
             labels={'Mes_Llegada': 'Mes', 'count': 'Número de Buques'},
             barmode='stack',
-            category_orders={'Mes_Llegada': list(calendar.month_name[1:])}
+            category_orders={'Mes_Llegada': list(nombres_meses_es.values())}  # Ordenar los meses en español
         )
 
-        # Crear visualización
-        return html.Div([
-            html.H5(f"Resultados de Predicción para: {filename}", style={'color': '#003366'}),
-            dash_table.DataTable(
-                data=tabla_resultados.to_dict('records'),
-                columns=[
-                    {"name": "Registro", "id": "Registro"},
-                    {"name": "Nombre del Buque", "id": "Nombre del Buque"},
-                    {"name": "Longitud del Buque (Eslora)", "id": "Longitud del Buque (Eslora)"},
-                    {"name": "Muelle Asignado", "id": "Muelle Asignado"},
-                    {"name": "Retraso Estimado (Horas)", "id": "Retraso Estimado (Horas)"}
-                ],
-                page_size=15,
-                style_table={'overflowX': 'auto'},
-                style_cell={'textAlign': 'left', 'padding': '5px'},
-                style_header={
-                    'backgroundColor': '#003366',
-                    'color': 'white',
-                    'fontWeight': 'bold'
-                }
+        # Crear filtros dinámicos y gráficos
+        filtros = html.Div([
+            dcc.Store(id='store-data', data=nuevos_datos.to_dict('records')),  # Guardar datos para filtros dinámicos
+            dcc.Dropdown(
+                id='filter-muelle',
+                options=muelles_unicos,
+                placeholder='Filtrar por Muelle',
+                style={'marginBottom': '10px'}
             ),
-
-            # Gráfico de distribución por muelle
-            dcc.Graph(figure=fig_muelle),
-
-            # Gráfico de buques esperados por mes
-            dcc.Graph(figure=fig_buques_mes)
+            dcc.Input(
+                id='filter-nombre-buque',
+                type='text',
+                placeholder='Buscar por Nombre del Buque',
+                style={'marginBottom': '10px', 'width': '100%'}
+            )
         ])
 
-    return html.Div(["Por favor, sube un archivo CSV para predecir."])
+        tabla = dash_table.DataTable(
+            id='table-results',
+            columns=[
+                {"name": "Registro", "id": "Registro"},
+                {"name": "Nombre del Buque", "id": "Buque"},
+                {"name": "Longitud del Buque (Eslora)", "id": "Eslora"},
+                {"name": "Muelle Asignado", "id": "Muelle Asignado"},
+                {"name": "Retraso Estimado (Horas)", "id": "Retraso Estimado (Horas)"},
+                {"name": "Mes de Llegada", "id": "Mes_Llegada"},
+                {"name": "Categoría Retraso", "id": "Categoría Retraso"}
+            ],
+            page_size=10,
+            style_table={'overflowX': 'auto'},
+            style_cell={'textAlign': 'left'},
+            style_header={
+                'backgroundColor': '#003366',
+                'color': 'white',
+                'fontWeight': 'bold'
+            },
+            data=[]  # Tabla inicial vacía
+        )
+
+        return html.Div([tabla, dcc.Graph(figure=fig_muelle), dcc.Graph(figure=fig_buques_mes)]), filtros
+
+    return html.Div(["Por favor, subir un archivo CSV"]), None 
+
+
+@app.callback(
+    Output('table-results', 'data'),
+    [
+        Input('filter-muelle', 'value'),
+        Input('filter-nombre-buque', 'value')
+    ],
+    [State('store-data', 'data')]
+)
+def filter_table(muelle_value, buque_value, data):
+    # Verificar si los datos existen
+    if data is None:
+        return []
+
+    # Convertir los datos almacenados en formato DataFrame
+    df = pd.DataFrame(data)
+
+    # Aplicar filtro de Muelle si está seleccionado y no es "Todos"
+    if muelle_value and muelle_value != 'Todos':
+        df = df[df['Muelle Asignado'] == muelle_value]
+
+    # Aplicar filtro de Nombre del Buque si está proporcionado
+    if buque_value:
+        df = df[df['Buque'].str.contains(buque_value, case=False, na=False)]
+
+    # Devolver los datos filtrados como una lista de diccionarios para la tabla
+    return df.to_dict('records')
+
+
+@app.callback(
+    Output('filter-muelle', 'options'),
+    Input('store-data', 'data')
+)
+def update_muelle_options(data):
+    if data is None:
+        return []
+    df = pd.DataFrame(data)
+    # Crear opciones dinámicas para el dropdown del filtro, incluyendo "Todos"
+    opciones = [{'label': 'Todos', 'value': 'Todos'}]
+    opciones += [{'label': muelle, 'value': muelle} for muelle in sorted(df['Muelle Asignado'].unique())]
+    return opciones
 
 
 if __name__ == '__main__':
